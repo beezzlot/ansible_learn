@@ -1,0 +1,50 @@
+---
+- name: Autodeployment
+  hosts: all
+  tasks:
+        - name: Install required pkg
+          become: yes
+          apt:
+                pkg:
+                        - docker
+                        - docker.io
+                        - nginx
+                        - python3.8
+                        - pip
+        - name: Pip install docker
+          become: yes
+          shell: pip3 install docker 
+        - name: Stop a container with Web Applications
+          become: yes
+          docker_container:
+                  name: beezzlot/docker-test
+                  state: stopped
+        - name: Stop a container with redis DB
+          become: yes
+          docker_container:
+                  name: redis
+                  state: stopped
+        - name: Download and Docker from Docker Hub
+          shell: sudo docker pull beezzlot/docker-test:latest
+        - name: Started Docker Image
+          shell: sudo docker run -p 8080:8080 -d beezzlot/docker-test:latest
+        - name: Download Redis
+          shell: sudo docker pull redis:latest
+        - name: Started Redis
+          shell: sudo docker run -p 6379:6379 -d redis:latest
+        - name: Install and configured reverse-proxy Nginx
+          become: yes
+          copy:
+                 src: /home/daimo/playbook/proxy.conf
+                 dest: /etc/nginx/sites-enabled/proxy.conf
+                 mode: "0644"
+        - name: Restart nginx
+          become: yes
+          service:
+                  name: nginx
+                  state: restarted
+
+
+
+
+
