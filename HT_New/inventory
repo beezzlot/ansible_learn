@@ -1,0 +1,17 @@
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+[routers]
+34.138.186.131
+35.230.92.88
+
+[nginx]
+
+35.230.92.88
+[app1]
+
+10.10.10.10
+[app2]
+
+10.10.10.20
+[pgsql]
+10.10.10.30
