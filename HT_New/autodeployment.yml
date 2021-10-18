@@ -8,11 +8,15 @@
                     insertafter: EOF
           - name: Apply sysctl config-file
             shell: sysctl -p
+          - name: Update apt
+            apt:
+                    update_cache: yes
           - name: Install required pkg
             become: yes
             apt:
                     pkg:
                             - nginx
+                            - strongswan
           - name: Configure iptables
             shell: iptables -t nat -A POSTROUTING -s 10.10.0.0/16 -o ens4 -j MASQUERADE
           
@@ -70,5 +74,57 @@
                    src: ./App2.html
                    dest: /var/www/html/index.html
                    mode: "0655"
-
-
+- hosts: pgsql
+  tasks:
+       - name: Install PostgreSQL
+         become: yes
+         apt:
+            pkg:
+                  - postgresql
+       - name: Create user for access to DB and set permissions
+         shell: psql -c "CREATE USER autouser WITH PASSWORD 'autopass';"
+         become: yes
+         become_method: su
+         become_user: postgres
+         ignore_errors: true
+       - name: Create the database
+         shell: createdb -O autouser -E Unicode -T template0 autodb
+         become: yes
+         become_method: su
+         become_user: postgres
+         ignore_errors: true
+       - name: Copy sql file
+         copy:
+           src: ./dump.sql
+           dest: /opt/dump.sql
+       - name: Fix permissions
+         shell: chown postgres:postgres /opt/dump.sql
+       - name: Add some date to database
+         become: yes
+         become_user: postgres
+         shell: psql autodb < /opt/dump.sql
+       - name: Create pg_hba
+         shell: echo "host all all 10.10.10.0/24 trust" >> /etc/postgresql/12/main/pg_hba.conf
+- hosts: phppgadmin
+  tasks:
+         - name: Update  apt
+           apt:
+                   update_cache: yes
+         - name: Install a package
+           apt:           
+                   pkg:
+                            - docker
+                            - docker.io
+         - name: Configure Docker-compose
+           become: yes
+           shell: curl -L "https://github.com/docker/compose/releases/download/1.26.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+         - name: Fix permissions
+           shell: sudo chmod +x /usr/local/bin/docker-compose
+         - name: Docker-compose transfer
+           copy:
+                    src: ./docker-compose.yml
+                    dest: /opt/docker-compose.yml
+         - name: Launch docker
+           become: yes
+           shell: sudo docker run -d -p 8080:8080 beezzlot/phppgadmin:latest1
+           ignore_errors: true

@@ -2,6 +2,7 @@
 ansible_python_interpreter=/usr/bin/python3
 [routers]
 34.138.186.131
+[phppgadmin]
 35.230.92.88
 
 [nginx]
